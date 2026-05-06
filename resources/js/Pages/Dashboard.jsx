@@ -6,7 +6,6 @@ export default function Dashboard({ tableData, tableFilters }) {
 
     return (
         <AuthenticatedLayout>
-            <Head title="Dashboard" />
 
             <h1 className="text-2xl font-bold">Dashboard</h1>
 

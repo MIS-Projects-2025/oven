@@ -1,8 +1,3 @@
-CREATE DATABASE test_db;
-
-USE test_db;
-
-DROP TABLE IF EXISTS admin;
 CREATE TABLE admin (
     admin_id INT AUTO_INCREMENT PRIMARY KEY,
     emp_id INT NOT NULL UNIQUE,
