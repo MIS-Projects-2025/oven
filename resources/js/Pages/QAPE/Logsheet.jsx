@@ -1,10 +1,21 @@
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, router } from "@inertiajs/react";
 import DataTable from "@/Components/DataTable";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Logsheet({ tableData, tableFilters, emp_data, positiveLogsheet, stampNo }) {
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+        router.reload({
+            only: ["tableData"],
+            preserveState: true,
+            preserveScroll: true,
+        });
+    }, 3000);
+
+    return () => clearInterval(interval);
+}, []);
 
 
   const QADept = ["Quality Assurance", "Quality Management System"].includes(emp_data?.emp_dept);

@@ -28,4 +28,7 @@ Route::prefix($app_name)
 
     Route::put("/logsheet-eeprod-update/{setup_log_id}", [SetupLogsheetController::class, 'update'])
       ->name('logsheet.eeprod.update');
+
+    Route::put("/logsheet-qape-verify/{setup_log_id}", [SetupLogsheetController::class, 'verify'])
+      ->name('logsheet.qape.verify.passed');
   });

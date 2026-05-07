@@ -17,10 +17,10 @@ export default function NavLinks() {
 
     const canReview = ["Quality Assurance", "Process Engineering", "Quality Management System"].includes(empDept);
 
-    const canAccess = ["Production", "Production / Non - TNR", "Equipment Engineering"].includes(empDept);
+    const canAccess = [equipmentTech, productions].includes(empDept) && adminAccess;
 
     const hasMaintenanceAccess =
-    ["superadmin", "admin"].includes(role) &&
+    adminAccess ||
      [
      "Production Supervisor",
      "Senior Production Supervisor",
@@ -93,26 +93,9 @@ export default function NavLinks() {
             )}
 
             
-             {hasMaintenanceAccess && (
-    <div>
-        <Dropdown
-            label="Maintenance"
-            icon={<i className="fa-solid fa-bars-progress"></i>}
-            links={[
-                {
-                    href: route("check_item.index"),
-                    label: "Setup Check Items",
-                },
-                {
-                    href: route("positive.checklist.index"),
-                    label: "Positive Check Items",
-                }
-            ]}
-        />
-    </div>
-)}
 
- {["superadmin", "admin"].includes(emp_data?.emp_system_role) && (
+
+ {adminAccess && (
                 <div>
            <Dropdown
   label="Table Management"
@@ -158,8 +141,26 @@ export default function NavLinks() {
 />
 </div>
             )}
+                         {hasMaintenanceAccess && (
+    <div>
+        <Dropdown
+            label="Maintenance"
+            icon={<i className="fa-solid fa-bars-progress"></i>}
+            links={[
+                {
+                    href: route("check_item.index"),
+                    label: "Setup Check Items",
+                },
+                {
+                    href: route("positive.checklist.index"),
+                    label: "Positive Check Items",
+                }
+            ]}
+        />
+    </div>
+)}
             
-            {["superadmin", "admin"].includes(emp_data?.emp_system_role) && (
+            {adminAccess && (
             <div>
                     <SidebarLink
                         href={route("admin")}
