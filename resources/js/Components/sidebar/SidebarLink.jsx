@@ -14,8 +14,8 @@ const SidebarLink = ({
 
     const themeColor =
         localStorage.getItem("theme") === "dark"
-            ? "bg-blue-800"
-            : "bg-blue-800";
+            ? "bg-sky-800/90"
+            : "bg-sky-800/90";
 
     const activeColor = isActive ? themeColor : "";
 
@@ -24,9 +24,9 @@ const SidebarLink = ({
             href={href}
             className={`relative flex justify-between px-4 py-1 pl-[10px] transition-colors duration-150 rounded-md ${activeColor}`}
         >
-            <div className="flex items-center">
-                <span className="w-6 h-6 pt-[2px]">{icon}</span>
-                <p className="pl-1 pt-[1px]">{label}</p>
+            <div className="flex items-center justify-center">
+                <span className="w-6 h-6">{icon}</span>
+                <p className="pl-1 pt-[8px] ml-[-4px]">{label}</p>
             </div>
 
             <div>

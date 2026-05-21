@@ -12,23 +12,8 @@ require __DIR__ . '/auth.php';
 // General routes
 require __DIR__ . '/general.php';
 
-// setup routes
-require __DIR__ . '/setup.php';
-
-// positive routes
-require __DIR__ . '/positive.php';
-
-// qape routes
-require __DIR__ . '/qape.php';
-
-// table routes
-require __DIR__ . '/table.php';
-
-// metal routes
-require __DIR__ . '/metal.php';
-
-// capacity routes
-require __DIR__ . '/capacity.php';
+// Capability routes
+require __DIR__ . '/capability.php';
 
 Route::get("/demo", [DemoController::class, 'index'])->name('demo');
 

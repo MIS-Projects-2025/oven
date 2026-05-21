@@ -1,4 +1,4 @@
-import DataTable from "@/Components/DataTable";
+import DataTable from "@/Components/DataTable copy";
 import Modal from "@/Components/Modal";
 import toast, { Toaster } from "react-hot-toast";
 

@@ -18,7 +18,7 @@ export default function NavBar() {
                 return "Good evening";
             };
     return (
-        <nav className="bg-blue-600 shadow-md">
+        <nav className="bg-sky-600/90 shadow-md">
             <div className="px-4 mx-auto sm:px-6 lg:px-8">
                 <div className="flex justify-end h-[50px] ">
                     <div className="items-center hidden mr-5 space-x-1 font-semibold md:flex">

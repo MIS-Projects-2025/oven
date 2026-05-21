@@ -58,8 +58,8 @@ export default function Sidebar() {
                     flex-col min-h-screen w-[270px] space-y-6 px-4 pb-6 pt-4
                      ${
                         theme === "light"
-                            ? "bg-blue-600 text-white"
-                            : "bg-blue-600 text-white"
+                            ? "bg-sky-600/90 text-white"
+                            : "bg-sky-600/90 text-white"
                     }
                 `}
                 style={{
@@ -73,15 +73,15 @@ export default function Sidebar() {
                     className="flex items-center pl-[10px] text-lg font-bold"
                 >
                    <i className="fa-solid fa-door-open text-2xl"></i>
-                    <p className="pt-[2px] pl-1">{formattedAppName}</p>
+                    <p className="pt-[20px] pl-1">{formattedAppName}</p>
                 </Link>
 
                 <Navigation />
                 <ThemeToggler toggleTheme={toggleTheme} theme={theme} />
-                   <div className="text-center mt-4">
-                    <small className="text-black text-sm">Copyright © {new Date().getFullYear()}.<br /> All rights reserved.</small><br />
-                    <small className="text-gray-700">Created by: <b>Dharwines</b></small>
-                </div>
+                   <div className="text-center">
+                    <small className="text-white text-sm">Copyright © {new Date().getFullYear()}.<br /> All rights reserved.</small><br />
+                    <small className="text-gray-300">Created by: <b>Dharwines</b></small>
+                    </div>
                 
             </div>
         </div>

@@ -1,330 +1,434 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { router } from "@inertiajs/react";
+import { Search, ListFilter, FileText, ListRestart } from "lucide-react";
 
 export default function DataTable({
-    columns,
+    columns = [],
     data = [],
     meta = {},
     filters = {},
     routeName = "",
     rowKey = "id",
+
     selectable = false,
-    dateRangeSearch = false,
     onSelectionChange = () => {},
+
+    filterConfigs = [],
+    actions = [],
+
     showExport = false,
-    children,
-    filterDropdown = null,
 }) {
     const [selected, setSelected] = useState([]);
-    const [activeRow, setActiveRow] = useState(null);
     const [searchInput, setSearchInput] = useState(filters.search || "");
     const [perPage, setPerPage] = useState(filters.perPage || 10);
-    const [dropdownValue, setDropdownValue] = useState(
-        filters?.[filterDropdown?.key] || ""
-    );
+    const [dateFrom, setDateFrom] = useState(
+    filters.start || ""
+);
 
-    const extractDate = (dt) => (dt ? dt.split(" ")[0] : "");
-    const [dateFrom, setDateFrom] = useState(extractDate(filters.start));
-    const [dateTo, setDateTo] = useState(extractDate(filters.end));
+const [dateTo, setDateTo] = useState(
+    filters.end || ""
+);
+
+const handleExport = () => {
+    const params = new URLSearchParams({
+        ...filters,
+        search: searchInput,
+        ...filterValues,
+        export: 1,
+    }).toString();
+
+    window.open(
+        route('capability.matrix.export') + '?' + params,
+        '_blank'
+    );
+};
+
+const handleDateFilter = () => {
+
+    router.get(
+        routeName,
+        {
+            ...filters,
+
+            ...filterValues,
+
+            search: searchInput,
+
+            start: dateFrom,
+
+            end: dateTo,
+        },
+        {
+            preserveState: true,
+            replace: true,
+        }
+    );
+};
+
+    const [filterValues, setFilterValues] = useState(() => {
+        const initial = {};
+
+        filterConfigs.forEach((f) => {
+            initial[f.key] = filters[f.key] || "";
+        });
+
+        return initial;
+    });
 
     const themeColor =
         localStorage.getItem("theme") === "dark"
-            ? "hover:bg-gray-700"
-            : "hover:bg-gray-100";
+            ? "hover:bg-sky-600/20"
+            : "hover:bg-sky-50";
 
-    const handleSearch = (e) => {
-        e.preventDefault();
+    const handleFilterChange = (key, value) => {
+        const updated = {
+            ...filterValues,
+            [key]: value,
+        };
 
-        const extraFilter = filterDropdown
-            ? {
-                  [filterDropdown.key]: dropdownValue,
-                  dropdownFields: filterDropdown.fields.join(","),
-              }
-            : {};
-
-        router.get(
-            routeName,
-            { ...filters, search: searchInput, ...extraFilter },
-            { preserveState: true }
-        );
-    };
-
-    const handleDateFilter = (e) => {
-        e.preventDefault();
-        const formattedFrom = dateFrom ? `${dateFrom} 00:00:00` : null;
-        const formattedTo = dateTo ? `${dateTo} 23:59:59` : null;
+        setFilterValues(updated);
 
         router.get(
             routeName,
             {
                 ...filters,
-                start: formattedFrom,
-                end: formattedTo,
-                search: undefined,
+                ...updated,
+                search: searchInput,
             },
-            { preserveState: true }
+            {
+                preserveState: true,
+                replace: true,
+            }
         );
     };
 
-    const handleExport = () => {
-        const query = {
-            ...filters,
-            search: searchInput,
-            perPage,
-            start: dateFrom ? `${dateFrom} 00:00:00` : undefined,
-            end: dateTo ? `${dateTo} 23:59:59` : undefined,
-            export: 1,
-        };
+    const handleSearch = (e) => {
+        e.preventDefault();
 
-        if (filterDropdown) {
-            query[filterDropdown.key] = dropdownValue;
-            query.dropdownFields = filterDropdown.fields.join(",");
-        }
+        router.get(
+            routeName,
+            {
+                ...filters,
+                search: searchInput,
+                ...filterValues,
+            },
+            {
+                preserveState: true,
+                replace: true,
+            }
+        );
+    };
 
-        const queryString = new URLSearchParams(query).toString();
-        window.open(`${routeName}?${queryString}`, "_blank");
+    const handleSort = (key) => {
+        const isSameKey = filters.sortBy === key;
+
+        const direction =
+            isSameKey && filters.sortDirection === "asc"
+                ? "desc"
+                : "asc";
+
+        router.get(
+            routeName,
+            {
+                ...filters,
+                search: searchInput,
+                ...filterValues,
+                sortBy: key,
+                sortDirection: direction,
+            },
+            {
+                preserveState: true,
+                replace: true,
+            }
+        );
     };
 
     const handleSelectAll = (e) => {
-        const isChecked = e.target.checked;
-        const newSelection = isChecked ? [...data] : [];
+        const checked = e.target.checked;
+
+        const newSelection = checked ? [...data] : [];
+
         setSelected(newSelection);
+
         onSelectionChange(newSelection);
     };
 
     const handleSelectRow = (row) => {
         const exists = selected.find((r) => r[rowKey] === row[rowKey]);
-        const newSelection = exists
+
+        const updated = exists
             ? selected.filter((r) => r[rowKey] !== row[rowKey])
             : [...selected, row];
-        setSelected(newSelection);
-        onSelectionChange(newSelection);
+
+        setSelected(updated);
+
+        onSelectionChange(updated);
     };
 
-    const handleRowClick = (row) => {
-        setActiveRow(row);
-    };
+    const getFilteredOptions = (filter) => {
+        if (!filter.dependsOn) {
+            return filter.options;
+        }
 
-    const handleSort = (key) => {
-        const isSameKey = filters.sortBy === key;
-        const newDirection =
-            isSameKey && filters.sortDirection === "asc" ? "desc" : "asc";
-        router.get(
-            routeName,
-            { ...filters, sortBy: key, sortDirection: newDirection },
-            { preserveState: true }
+        const parentValue = filterValues[filter.dependsOn];
+
+        if (!parentValue) {
+            return filter.options;
+        }
+
+        return filter.options.filter(
+            (opt) => opt.parentValue === parentValue
         );
     };
 
-    const renderPaginationLinks = () => {
-        if (!meta?.links || !meta.currentPage || !meta.lastPage) return null;
 
-        const current = meta.currentPage;
-        const last = meta.lastPage;
-        const pages = [];
-
-        let start = Math.max(current - 2, 1);
-        let end = Math.min(start + 4, last);
-
-        if (end - start < 4) {
-            start = Math.max(end - 4, 1);
+const handleReset = () => {
+    router.get(route(routeName), {}, {
+        preserveState: false,
+        replace: true,
+        onSuccess: () => {
+            setFilterValues(
+                Object.fromEntries(
+                    filterConfigs.map(f => [f.key, ""])
+                )
+            );
+            setSearchInput("");
+            setPerPage(10);
         }
+    });
+};
 
-        for (let i = start; i <= end; i++) {
-            pages.push(i);
-        }
 
-        return (
-            <div className="join">
-                <button
-                    className="join-item btn btn-sm"
-                    disabled={current <= 1}
-                    onClick={() =>
-                        router.visit(
-                            meta.links.find((l) => l.label === "&laquo;")?.url
-                        )
-                    }
-                    dangerouslySetInnerHTML={{ __html: "&laquo;" }}
-                />
-                {pages.map((page) => (
-                    <button
-                        key={page}
-                        className={`join-item btn btn-sm ${
-                            page === current ? "btn-primary" : ""
-                        }`}
-                        onClick={() => {
-                            const pageLink = meta.links.find(
-                                (l) => parseInt(l.label) === page
-                            );
-                            if (pageLink?.url) router.visit(pageLink.url);
-                        }}
-                        dangerouslySetInnerHTML={{ __html: page.toString() }}
-                    />
-                ))}
-                <button
-                    className="join-item btn btn-sm"
-                    disabled={current >= last}
-                    onClick={() =>
-                        router.visit(
-                            meta.links.find((l) => l.label === "&raquo;")?.url
-                        )
-                    }
-                    dangerouslySetInnerHTML={{ __html: "&raquo;" }}
-                />
-            </div>
-        );
-    };
 
     return (
-        <div className="w-full p-3 border border-gray-300 rounded-lg">
-            <form
-                onSubmit={dateRangeSearch ? handleDateFilter : handleSearch}
-                className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+        <div className="w-full p-4 border rounded-xl border-sky-600/50">
+
+            {/* FILTERS */}
+<form
+    onSubmit={handleSearch}
+    
+>
+
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-2 mb-4">
+    {/* DYNAMIC FILTERS */}
+    {filterConfigs.map((filter) => (
+        <div
+            key={filter.key}
+            className="w-full"
+        >
+            <select
+                className="select select-sm w-full border-sky-600/50"
+                value={filterValues[filter.key]}
+                onChange={(e) =>
+                    handleFilterChange(
+                        filter.key,
+                        e.target.value
+                    )
+                }
             >
-                <select
-                    value={perPage}
-                    onChange={(e) => {
-                        const value = parseInt(e.target.value, 10);
-                        setPerPage(value);
-                        router.get(
-                            routeName,
-                            { ...filters, perPage: value },
-                            { preserveState: true }
-                        );
-                    }}
-                    className="select select-sm w-[100px] py-0"
-                >
-                    {[10, 25, 50, 100].map((num) => (
-                        <option key={num} value={num}>
-                            Show {num}
+                <option value="">
+                    All {filter.label}
+                </option>
+
+                {getFilteredOptions(filter).map(
+                    (opt) => (
+                        <option
+                            key={opt.value}
+                            value={opt.value}
+                        >
+                            {opt.label}
                         </option>
-                    ))}
-                </select>
-
-                {dateRangeSearch ? (
-                    <div className="flex flex-col w-full gap-2 sm:flex-row sm:items-center sm:w-auto">
-                        <input
-                            type="date"
-                            value={dateFrom}
-                            onChange={(e) => setDateFrom(e.target.value)}
-                            className="input input-sm input-bordered"
-                        />
-                        <span className="mx-1">to</span>
-                        <input
-                            type="date"
-                            value={dateTo}
-                            onChange={(e) => setDateTo(e.target.value)}
-                            className="input input-sm input-bordered"
-                        />
-                        <button
-                            type="submit"
-                            className="btn btn-sm btn-primary"
-                        >
-                            Filter
-                        </button>
-                        {showExport && (
-                            <button
-                                type="button"
-                                className="btn btn-sm btn-outline"
-                                onClick={handleExport}
-                            >
-                                Export CSV
-                            </button>
-                        )}
-                    </div>
-                ) : (
-                    <div className="flex flex-col w-full gap-2 sm:flex-row sm:items-center sm:w-auto">
-                        {filterDropdown && (
-                            <select
-                                className="select select-sm w-full sm:w-[170px] py-0"
-                                value={dropdownValue}
-                                onChange={(e) => {
-                                    const value = e.target.value;
-                                    setDropdownValue(value);
-                                    router.get(
-                                        routeName,
-                                        {
-                                            ...filters,
-                                            search: searchInput,
-                                            [filterDropdown.key]: value,
-                                            dropdownFields:
-                                                filterDropdown.fields.join(","),
-                                        },
-                                        { preserveState: true }
-                                    );
-                                }}
-                            >
-                                <option value="">All</option>
-                                {filterDropdown.options.map((opt) => (
-                                    <option key={opt.value} value={opt.value}>
-                                        {opt.label}
-                                    </option>
-                                ))}
-                            </select>
-                        )}
-                        <input
-                            type="text"
-                            placeholder="Search..."
-                            value={searchInput}
-                            onChange={(e) => setSearchInput(e.target.value)}
-                            className="w-full input input-sm input-bordered sm:w-auto"
-                        />
-                        <button
-                            type="submit"
-                            className="px-2 btn btn-sm btn-primary"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                strokeWidth="1.5"
-                                stroke="currentColor"
-                                className="size-4"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
-                                />
-                            </svg>
-                        </button>
-                        {showExport && (
-                            <button
-                                type="button"
-                                className="btn btn-sm btn-outline"
-                                onClick={handleExport}
-                            >
-                                Export CSV
-                            </button>
-                        )}
-                    </div>
+                    )
                 )}
-            </form>
+            </select>
+        </div>
+    ))}
+    </div>
 
-            <div className="w-full mt-4 overflow-x-auto">
-                <table className="table min-w-full table-zebra">
+    {/* <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-end mb-4">
+        <div className="flex gap-2 mt-4">
+            <button
+    onClick={handleReset}
+    className="flex items-center bg-gray-600 text-white hover:bg-gray-700 font-bold py-2 px-4 border border-gray-700 rounded"
+>
+    <ListRestart className="w-5 h-5 mr-2" />
+    Reset Filters
+</button>
+        </div>
+    </div> */}
+
+    <div className="flex flex-col gap-3 mt-2 lg:flex-row lg:items-center lg:justify-start mb-4">
+        {/* DATE FROM */}
+        <div>
+            <label className="m-2 text-md font-semibold text-gray-600">From:</label>
+        <input
+            type="date"
+            className="w-full text-sm text-stone-700 bordered-gray-300 rounded-md p-2"
+            value={dateFrom}
+            onChange={(e) =>
+                setDateFrom(
+                    e.target.value
+                )
+            }
+        />
+        </div>
+
+        {/* DATE TO */}
+        <div>
+            <label className="m-2 text-md font-semibold text-gray-600">To:</label>
+        <input
+            type="date"
+            className="w-full text-sm text-stone-700 bordered-gray-300 rounded-md p-2"
+            value={dateTo}
+            onChange={(e) =>
+                setDateTo(
+                    e.target.value
+                )
+            }
+        />
+        </div>
+
+        {/* FILTER BUTTON */}
+        <div className="flex gap-2 mt-4">
+            <button
+            type="button"
+            onClick={handleDateFilter}
+            className="flex items-center bg-stone-200 text-stone-700 hover:bg-stone-700 hover:text-white font-bold py-2 px-4 border border-stone-700 rounded"
+        >
+           <ListFilter className="w-5 h-5 mr-2"/> Filter Date
+        </button>
+        </div>
+
+        {/* EXPORT */}
+        <div className="flex gap-2 mt-4">
+        {showExport && (
+         
+            <button
+                type="button"
+                onClick={handleExport}
+                className="flex items-center bg-blue-200 text-blue-700 hover:bg-blue-700 hover:text-white font-bold py-2 px-4 border border-blue-700 rounded"
+            >
+               <FileText className="w-5 h-5 mr-2"/> Export CSV
+            </button>
+        )}
+        </div>
+
+        
+    </div>
+
+{/* ACTION ROW */}
+<div className="flex flex-col gap-3 mt-2 lg:flex-row lg:items-center lg:justify-between border-t-2 pt-4">
+
+    {/* LEFT */}
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+
+        {/* PER PAGE */}
+        <select
+            className="select select-sm border-sky-600/50"
+            value={perPage}
+            onChange={(e) => {
+
+                const value = Number(
+                    e.target.value
+                );
+
+                setPerPage(value);
+
+                router.get(
+                    routeName,
+                    {
+                        ...filters,
+
+                        perPage: value,
+
+                        ...filterValues,
+
+                        start: dateFrom,
+
+                        end: dateTo,
+                    },
+                    {
+                        preserveState: true,
+                    }
+                );
+            }}
+        >
+            {[10, 25, 50, 100].map(
+                (n) => (
+                    <option
+                        key={n}
+                        value={n}
+                    >
+                        Show {n}
+                    </option>
+                )
+            )}
+        </select>
+
+        
+    </div>
+
+    {/* RIGHT */}
+    <div className="flex gap-2">
+
+        <input
+            type="text"
+            placeholder="Search..."
+            className="input input-sm input-bordered w-full md:w-[250px]"
+            value={searchInput}
+            onChange={(e) =>
+                setSearchInput(
+                    e.target.value
+                )
+            }
+        />
+
+        <button
+            type="submit"
+            className="btn btn-sm bg-sky-600 text-white"
+        >
+            <Search className="w-4 h-4" />
+        </button>
+
+    </div>
+
+</div>
+
+</form>
+
+            {/* TABLE */}
+            <div className="overflow-x-auto">
+                <table className="table table-zebra">
                     <thead>
                         <tr>
                             {selectable && (
                                 <th>
                                     <input
                                         type="checkbox"
-                                        onChange={handleSelectAll}
                                         checked={
                                             selected.length === data.length &&
                                             data.length > 0
                                         }
-                                        onClick={(e) => e.stopPropagation()}
+                                        onChange={handleSelectAll}
                                     />
                                 </th>
                             )}
+
                             {columns.map((col) => (
                                 <th
                                     key={col.key}
-                                    onClick={() => handleSort(col.key)}
-                                    className="cursor-pointer whitespace-nowrap"
+                                    className={`${
+                                        col.sortable
+                                            ? "cursor-pointer"
+                                            : ""
+                                    }`}
+                                    onClick={() =>
+                                        col.sortable &&
+                                        handleSort(col.key)
+                                    }
                                 >
                                     {col.label}
+
                                     {filters.sortBy === col.key && (
                                         <span className="ml-1 text-xs">
                                             {filters.sortDirection === "asc"
@@ -334,14 +438,23 @@ export default function DataTable({
                                     )}
                                 </th>
                             ))}
+
+                            {actions.length > 0 && (
+                                <th className="text-center">
+                                    Actions
+                                </th>
+                            )}
                         </tr>
                     </thead>
+
                     <tbody>
                         {data.length === 0 ? (
                             <tr>
                                 <td
                                     colSpan={
-                                        columns.length + (selectable ? 1 : 0)
+                                        columns.length +
+                                        actions.length +
+                                        (selectable ? 1 : 0)
                                     }
                                     className="text-center"
                                 >
@@ -350,22 +463,17 @@ export default function DataTable({
                             </tr>
                         ) : (
                             data.map((row, index) => {
-                                const key = `${row[rowKey]}-${index}`;
                                 const isSelected = selected.some(
                                     (r) => r[rowKey] === row[rowKey]
                                 );
+
                                 return (
                                     <tr
-                                        key={key}
-                                        className={`transition-colors cursor-pointer ${themeColor}`}
-                                        onClick={() => handleRowClick(row)}
+                                        key={`${row[rowKey]}-${index}`}
+                                        className={`${themeColor}`}
                                     >
                                         {selectable && (
-                                            <td
-                                                onClick={(e) =>
-                                                    e.stopPropagation()
-                                                }
-                                            >
+                                            <td>
                                                 <input
                                                     type="checkbox"
                                                     checked={isSelected}
@@ -375,14 +483,45 @@ export default function DataTable({
                                                 />
                                             </td>
                                         )}
-                                        {columns.map((col, i) => (
+
+                                        {columns.map((col) => (
                                             <td
-                                                key={`${key}-${col.key}-${i}`}
-                                                className="whitespace-nowrap max-w-[200px] truncate"
+                                                key={col.key}
+                                                className="whitespace-nowrap"
                                             >
-                                                {row[col.key] ?? "-"}
+                                                {col.render
+                                                    ? col.render(row)
+                                                    : row[col.key] ?? "-"}
                                             </td>
                                         ))}
+
+                                        {actions.length > 0 && (
+                                            <td>
+                                                <div className="flex gap-2 justify-center">
+                                                    {actions.map(
+                                                        (
+                                                            action,
+                                                            idx
+                                                        ) => (
+                                                            <button
+                                                                key={idx}
+                                                                type="button"
+                                                                className={`btn btn-xs ${action.className}`}
+                                                                onClick={() =>
+                                                                    action.onClick(
+                                                                        row
+                                                                    )
+                                                                }
+                                                            >
+                                                                {
+                                                                    action.label
+                                                                }
+                                                            </button>
+                                                        )
+                                                    )}
+                                                </div>
+                                            </td>
+                                        )}
                                     </tr>
                                 );
                             })
@@ -391,18 +530,36 @@ export default function DataTable({
                 </table>
             </div>
 
+            {/* PAGINATION */}
             {meta?.links?.length > 0 && (
-                <div className="flex flex-col gap-2 mt-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="text-sm text-gray-500">
-                        Showing {meta.from} to {meta.to} of {meta.total} results
+                <div className="flex items-center justify-between mt-4">
+                    <div className="text-sm text-sky-600">
+                        Showing {meta.from} to {meta.to}
+                        of {meta.total}
                     </div>
-                    {renderPaginationLinks()}
+
+                    <div className="join">
+                        {meta.links.map((link, idx) => (
+                            <button
+                                key={idx}
+                                className={`join-item btn btn-sm ${
+                                    link.active
+                                        ? "bg-sky-600 text-white"
+                                        : ""
+                                }`}
+                                disabled={!link.url}
+                                onClick={() =>
+                                    link.url &&
+                                    router.visit(link.url)
+                                }
+                                dangerouslySetInnerHTML={{
+                                    __html: link.label,
+                                }}
+                            />
+                        ))}
+                    </div>
                 </div>
             )}
-
-            {typeof children === "function" &&
-                activeRow &&
-                children(activeRow, () => setActiveRow(null))}
         </div>
     );
 }

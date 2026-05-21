@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { usePage, Link } from "@inertiajs/react";
+import { CircleSmall } from "lucide-react";
 
 export default function Dropdown({
     label,
@@ -34,13 +35,13 @@ export default function Dropdown({
 
     const hoverColor =
         localStorage.getItem("theme") === "dark"
-            ? "hover:bg-blue-800"
-            : "hover:bg-blue-800";
+            ? "hover:bg-sky-800/90"
+            : "hover:bg-sky-800/90";
 
     const activeColor =
         localStorage.getItem("theme") === "dark"
-            ? "bg-blue-800"
-            : "bg-blue-800";
+            ? "bg-sky-800/90"
+            : "bg-sky-800/90";
 
     return (
         <div className="relative w-full">
@@ -119,20 +120,7 @@ export default function Dropdown({
                                             {link.icon}
                                         </span>
                                     ) : (
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            strokeWidth="1.5"
-                                            stroke="currentColor"
-                                            className="size-4"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                d="M5.25 7.5A2.25 2.25 0 0 1 7.5 5.25h9a2.25 2.25 0 0 1 2.25 2.25v9a2.25 2.25 0 0 1-2.25 2.25h-9a2.25 2.25 0 0 1-2.25-2.25v-9Z"
-                                            />
-                                        </svg>
+                                        <CircleSmall className="w-4 h-4 mb-4"/>
                                     )}
                                     <p className="pl-1">{link.label}</p>
                                 </div>
