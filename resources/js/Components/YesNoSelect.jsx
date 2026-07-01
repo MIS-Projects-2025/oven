@@ -4,15 +4,15 @@ import {
     CommandGroup,
     CommandInput,
     CommandItem,
-} from "@/components/ui/command";
+} from "@/Components/ui/command";
 
 import {
     Popover,
     PopoverContent,
     PopoverTrigger,
-} from "@/components/ui/popover";
+} from "@/Components/ui/popover";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/Components/ui/button";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { useState } from "react";
 
